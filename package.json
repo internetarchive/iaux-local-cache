@@ -21,6 +21,7 @@
     "test:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --watch\""
   },
   "dependencies": {
+    "idb-keyval": "^5.0.4",
     "lit-element": "^2.2.1",
     "lit-html": "^1.1.2"
   },

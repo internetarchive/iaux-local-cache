@@ -1,1 +1,1 @@
-export { YourWebComponent } from './src/your-webcomponent';
+export { LocalCache } from './src/local-cache';

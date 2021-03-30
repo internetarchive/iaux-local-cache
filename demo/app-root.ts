@@ -1,5 +1,5 @@
 import { html, css, LitElement, customElement } from 'lit-element';
-import '../src/your-webcomponent';
+import './your-webcomponent';
 
 @customElement('app-root')
 export class AppRoot extends LitElement {
