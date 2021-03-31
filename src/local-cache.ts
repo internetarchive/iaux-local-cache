@@ -1,14 +1,16 @@
 import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval';
 
+export type milliseconds = number;
+
 export interface LocalCacheInterface {
   /**
-   * Set a cache with a ttl
+   * Set a cache with a ttl, in milliseconds
    *
-   * @param {{ key: string; value: any; ttl?: number }} options
+   * @param {{ key: string; value: any; ttl?: milliseconds }} options
    * @returns {Promise<void>}
    * @memberof LocalCacheInterface
    */
-  set(options: { key: string; value: any; ttl?: number }): Promise<void>;
+  set(options: { key: string; value: any; ttl?: milliseconds }): Promise<void>;
 
   /**
    * Get a cached value or undefined if not set or expired
@@ -29,16 +31,19 @@ export interface LocalCacheInterface {
   delete(key: string): Promise<void>;
 }
 
-export interface LocalCacheEntry {
+interface LocalCacheEntry {
   value: any;
   expires?: Date;
 }
 
 export class LocalCache implements LocalCacheInterface {
+  private defaultTTL: milliseconds;
+
   private namespace: string;
 
-  constructor(namespace?: string) {
-    this.namespace = namespace ?? 'LocalCache';
+  constructor(options?: { namespace?: string; defaultTTL?: milliseconds }) {
+    this.namespace = options?.namespace ?? 'LocalCache';
+    this.defaultTTL = options?.defaultTTL ?? 15 * 60 * 1000; // 15 minutes
   }
 
   /** @inheritdoc */
@@ -46,11 +51,10 @@ export class LocalCache implements LocalCacheInterface {
     const cacheEntry: LocalCacheEntry = {
       value: options.value,
     };
-    if (options.ttl) {
-      const expires = new Date();
-      expires.setMilliseconds(expires.getMilliseconds() + options.ttl);
-      cacheEntry.expires = expires;
-    }
+    const ttl = options.ttl ?? this.defaultTTL;
+    const expires = new Date();
+    expires.setMilliseconds(expires.getMilliseconds() + ttl);
+    cacheEntry.expires = expires;
 
     const namespacedKey = this.getNamespacedKey(options.key);
     await idbSet(namespacedKey, cacheEntry);

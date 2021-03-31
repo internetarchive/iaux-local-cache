@@ -4,21 +4,30 @@ import { LocalCache } from '../src/local-cache';
 import { promisedSleep } from './promisedSleep';
 
 describe('LocalCache', () => {
-  it('can set a cache entry', async () => {
-    const localCache = new LocalCache('boop');
+  it('can set a cache entry with default ttl', async () => {
+    const ttl = 15 * 60 * 1000; // 15 minute default ttl
+    const expires = new Date();
+    expires.setMilliseconds(expires.getMilliseconds() + ttl);
+    const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
       value: 'bar',
     });
-    // access the entry directly from idb-keyval
+    // access the entry directly from idb-keyval to validate
     const result = await idbGet('boop-foo');
     expect(result.value).to.equal('bar');
-    expect(result.expires).to.equal(undefined);
+
+    // verify that the expected ttl is within 100 ms
+    // of the actual value since they'll be off by
+    // a few ms
+    const resultExpires = +result.expires;
+    const ttlDiff = Math.abs(resultExpires - +expires);
+    expect(ttlDiff).to.be.lessThan(100);
     await localCache.delete('foo');
   });
 
   it('can get a cache entry', async () => {
-    const localCache = new LocalCache('boop');
+    const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
       value: 'bar',
@@ -32,7 +41,7 @@ describe('LocalCache', () => {
     const ttl = 5000;
     const expires = new Date();
     expires.setMilliseconds(expires.getMilliseconds() + ttl);
-    const localCache = new LocalCache('boop');
+    const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
       value: 'bar',
@@ -53,7 +62,7 @@ describe('LocalCache', () => {
 
   it('returns the cached copy if available', async () => {
     const ttl = 500; // 500ms cache
-    const localCache = new LocalCache('boop');
+    const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
       value: 'bar',
@@ -67,7 +76,7 @@ describe('LocalCache', () => {
 
   it('returns undefined if cache is expired', async () => {
     const ttl = 50; // 10ms cache
-    const localCache = new LocalCache('boop');
+    const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
       value: 'bar',
@@ -84,7 +93,7 @@ describe('LocalCache', () => {
   });
 
   it('can delete a cache entry', async () => {
-    const localCache = new LocalCache('boop');
+    const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
       value: 'bar',
@@ -103,7 +112,7 @@ describe('LocalCache', () => {
       value: 'bar',
     });
     const result = await idbGet('LocalCache-foo');
-    expect(result).to.deep.equal({ value: 'bar' });
+    expect(result.value).to.equal('bar');
     await localCache.delete('foo');
   });
 });
