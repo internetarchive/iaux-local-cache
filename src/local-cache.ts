@@ -66,6 +66,7 @@ export class LocalCache implements LocalCacheInterface {
     const result = await idbGet(namespacedKey);
     if (!result) return;
     if (result.expires && result.expires < new Date()) {
+      await this.delete(key);
       return;
     }
     // eslint-disable-next-line consistent-return

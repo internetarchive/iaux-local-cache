@@ -92,6 +92,31 @@ describe('LocalCache', () => {
     await localCache.delete('foo');
   });
 
+  it('deletes the cache if expired', async () => {
+    const ttl = 50; // 50ms cache
+    const localCache = new LocalCache({ namespace: 'boop' });
+    await localCache.set({
+      key: 'foo',
+      value: 'bar',
+      ttl,
+    });
+    let result = await localCache.get('foo');
+    expect(result).to.equal('bar'); // available
+    await promisedSleep(100); // wait until it expires
+
+    // check idb directly to make sure it's still there
+    result = await idbGet('boop-foo');
+    expect(result).to.not.equal(undefined); // expired, but hasn't been deleted yet
+
+    // call localCache, which is now expired, and should delete from idb
+    result = await localCache.get('foo');
+    expect(result).to.equal(undefined); // undefined from localCache
+
+    // recheck idb to verify it's gone
+    result = await idbGet('boop-foo');
+    expect(result).to.equal(undefined); // deleted from idb
+  });
+
   it('can delete a cache entry', async () => {
     const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
