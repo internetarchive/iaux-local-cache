@@ -1,13 +1,13 @@
 import { expect } from '@open-wc/testing';
 import { get as idbGet } from 'idb-keyval';
+import { addSeconds } from '../src/add-seconds';
 import { LocalCache } from '../src/local-cache';
 import { promisedSleep } from './promisedSleep';
 
 describe('LocalCache', () => {
   it('can set a cache entry with default ttl', async () => {
-    const ttl = 15 * 60 * 1000; // 15 minute default ttl
-    const expires = new Date();
-    expires.setMilliseconds(expires.getMilliseconds() + ttl);
+    const ttl = 15 * 60; // 15 minute default ttl
+    const expires = addSeconds(new Date(), ttl);
     const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
@@ -38,9 +38,8 @@ describe('LocalCache', () => {
   });
 
   it('can set a cache entry with an expiration', async () => {
-    const ttl = 5000;
-    const expires = new Date();
-    expires.setMilliseconds(expires.getMilliseconds() + ttl);
+    const ttl = 5;
+    const expires = addSeconds(new Date(), ttl);
     const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
@@ -61,7 +60,7 @@ describe('LocalCache', () => {
   });
 
   it('returns the cached copy if available', async () => {
-    const ttl = 500; // 500ms cache
+    const ttl = 0.5; // 500ms cache
     const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
@@ -75,7 +74,7 @@ describe('LocalCache', () => {
   });
 
   it('returns undefined if cache is expired', async () => {
-    const ttl = 50; // 10ms cache
+    const ttl = 0.05; // 50ms cache
     const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
@@ -93,7 +92,7 @@ describe('LocalCache', () => {
   });
 
   it('deletes the cache if expired', async () => {
-    const ttl = 50; // 50ms cache
+    const ttl = 0.05; // 50ms cache
     const localCache = new LocalCache({ namespace: 'boop' });
     await localCache.set({
       key: 'foo',
