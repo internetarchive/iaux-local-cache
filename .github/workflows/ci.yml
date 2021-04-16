@@ -1,0 +1,30 @@
+name: App CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: '**/node_modules'
+        key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 15.x
+
+    - name: Install dependencies
+      run: yarn install && npm install -g codecov
+
+    - name: Run tests
+      run: yarn run test
+
+    - name: Code coverage
+      run: codecov
