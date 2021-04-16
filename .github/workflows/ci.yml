@@ -19,5 +19,14 @@ jobs:
     - name: Install dependencies
       run: yarn install
 
+  test:
+    needs: build
+
     - name: Run tests
       run: yarn run test
+
+  coverage:
+    needs: test
+
+    - name: Code coverage
+      run: npx codecov
