@@ -17,10 +17,10 @@ jobs:
         node-version: 15.x
 
     - name: Install dependencies
-      run: yarn install
+      run: yarn install && npm install -g codecov
 
     - name: Run tests
       run: yarn run test
 
     - name: Code coverage
-      run: npx codecov
+      run: codecov
