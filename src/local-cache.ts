@@ -56,13 +56,23 @@ export class LocalCache implements LocalCacheInterface {
     cacheEntry.expires = expires;
 
     const namespacedKey = this.getNamespacedKey(options.key);
-    await idbSet(namespacedKey, cacheEntry);
+    try {
+      await idbSet(namespacedKey, cacheEntry);
+    } catch {
+      // indexeddb may not be available (Firefox throws an error in Private mode)
+    }
   }
 
   /** @inheritdoc */
   async get(key: string): Promise<any> {
     const namespacedKey = this.getNamespacedKey(key);
-    const result = await idbGet(namespacedKey);
+    let result;
+    try {
+      result = await idbGet(namespacedKey);
+    } catch {
+      // indexeddb may not be available (Firefox throws an error in Private mode)
+    }
+
     if (!result) return;
     if (result.expires && result.expires < new Date()) {
       await this.delete(key);
@@ -75,7 +85,11 @@ export class LocalCache implements LocalCacheInterface {
   /** @inheritdoc */
   async delete(key: string): Promise<void> {
     const namespacedKey = this.getNamespacedKey(key);
-    await idbDel(namespacedKey);
+    try {
+      await idbDel(namespacedKey);
+    } catch {
+      // indexeddb may not be available (Firefox throws an error in Private mode)
+    }
   }
 
   private getNamespacedKey(key: string): string {
