@@ -1,6 +1,6 @@
 {
   "name": "@internetarchive/local-cache",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A local browser cache with cache expiration. Built on IndexedDB.",
   "author": "Internet Archive",
   "license": "AGPL-3.0-only",
