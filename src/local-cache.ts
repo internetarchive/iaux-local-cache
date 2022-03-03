@@ -64,7 +64,7 @@ export class LocalCache implements LocalCacheInterface {
     if (options?.immediateClean ?? true) this.cleanExpired();
 
     if (!options?.disableCleaning) {
-      const cleaningInterval = options?.cleaningInterval ?? 60 * 15; // 15 minutes
+      const cleaningInterval = options?.cleaningInterval ?? 60; // 1 minute
       setInterval(() => {
         this.cleanExpired();
       }, cleaningInterval * 1000);
