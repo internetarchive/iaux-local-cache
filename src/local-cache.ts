@@ -119,10 +119,8 @@ export class LocalCache implements LocalCacheInterface {
   /** @inheritdoc */
   async cleanExpired(): Promise<void> {
     const keys = await this.getAllKeys();
-    for await (const key of keys) {
-      // calling `get` on each key will delete it if expired
-      await this.get(key);
-    }
+    // calling `get` on each key will delete it if expired
+    await Promise.all(keys.map(async key => this.get(key)));
   }
 
   /**
