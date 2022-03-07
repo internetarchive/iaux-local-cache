@@ -139,4 +139,90 @@ describe('LocalCache', () => {
     expect(result.value).to.equal('bar');
     await localCache.delete('foo');
   });
+
+  describe('Cleaning', () => {
+    it('can clean expired values in the cache', async () => {
+      const localCache = new LocalCache({
+        namespace: 'expireme',
+        defaultTTL: 0.05,
+      });
+      await localCache.set({
+        key: 'foo2',
+        value: 'barrrrr',
+      });
+      const result = await idbGet('expireme-foo2');
+      expect(result.value).to.equal('barrrrr');
+      await promisedSleep(100); // wait until it expires
+      await localCache.cleanExpired();
+      const result2 = await idbGet('expireme-foo2');
+      expect(result2).to.equal(undefined);
+    });
+
+    it('only cleans keys in its own namespace', async () => {
+      const localCache = new LocalCache({
+        namespace: 'expireme',
+        defaultTTL: 0.05,
+      });
+      const localCache2 = new LocalCache({
+        namespace: 'expireme2',
+        defaultTTL: 10,
+      });
+      await localCache.set({
+        key: 'foo',
+        value: 'bar',
+      });
+      await localCache2.set({
+        key: 'foo',
+        value: 'bar',
+      });
+      const result = await idbGet('expireme-foo');
+      expect(result.value).to.equal('bar');
+      const result2 = await idbGet('expireme2-foo');
+      expect(result2.value).to.equal('bar');
+      await promisedSleep(100); // wait until it expires
+      await localCache.cleanExpired();
+      const result3 = await localCache.get('foo');
+      expect(result3).to.equal(undefined);
+      const result4 = await localCache2.get('foo');
+      expect(result4).to.equal('bar');
+    });
+
+    it('cleans on instantiation', async () => {
+      const localCache = new LocalCache({
+        namespace: 'cleanme',
+        defaultTTL: 0.05,
+      });
+      await localCache.set({
+        key: 'foo',
+        value: 'bar',
+      });
+      await promisedSleep(100); // wait until it expires
+
+      // reinstantiate the cache with the same namespace to trigger the clean
+      const localCache2 = new LocalCache({
+        namespace: 'cleanme',
+        defaultTTL: 0.05,
+        immediateClean: true,
+      });
+      const result = await localCache2.get('foo');
+      expect(result).to.equal(undefined);
+    });
+
+    it('cleans on a schedule', async () => {
+      const localCache = new LocalCache({
+        namespace: 'cleanme',
+        defaultTTL: 0.05,
+        immediateClean: false,
+        cleaningInterval: 0.1,
+      });
+      await localCache.set({
+        key: 'foo',
+        value: 'bar',
+      });
+      await promisedSleep(150); // wait until the clean interval passes
+
+      const result = await localCache.get('foo');
+      expect(result).to.equal(undefined);
+    });
+  });
 });

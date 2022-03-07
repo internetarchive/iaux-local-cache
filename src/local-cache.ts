@@ -1,4 +1,9 @@
-import { del as idbDel, get as idbGet, set as idbSet } from 'idb-keyval';
+import {
+  del as idbDel,
+  get as idbGet,
+  set as idbSet,
+  keys as idbKeys,
+} from 'idb-keyval';
 import { addSeconds } from './add-seconds';
 import type { Seconds } from './models';
 
@@ -29,6 +34,11 @@ export interface LocalCacheInterface {
    * @memberof LocalCacheInterface
    */
   delete(key: string): Promise<void>;
+
+  /**
+   * Clear all expired keys
+   */
+  cleanExpired(): Promise<void>;
 }
 
 interface LocalCacheEntry {
@@ -41,9 +51,24 @@ export class LocalCache implements LocalCacheInterface {
 
   private namespace: string;
 
-  constructor(options?: { namespace?: string; defaultTTL?: Seconds }) {
+  constructor(options?: {
+    namespace?: string;
+    defaultTTL?: Seconds;
+    cleaningInterval?: Seconds;
+    disableCleaning?: boolean;
+    immediateClean?: boolean;
+  }) {
     this.namespace = options?.namespace ?? 'LocalCache';
     this.defaultTTL = options?.defaultTTL ?? 15 * 60; // 15 minutes
+
+    if (options?.immediateClean ?? true) this.cleanExpired();
+
+    if (!options?.disableCleaning) {
+      const cleaningInterval = options?.cleaningInterval ?? 60; // 1 minute
+      setInterval(() => {
+        this.cleanExpired();
+      }, cleaningInterval * 1000);
+    }
   }
 
   /** @inheritdoc */
@@ -58,9 +83,8 @@ export class LocalCache implements LocalCacheInterface {
     const namespacedKey = this.getNamespacedKey(options.key);
     try {
       await idbSet(namespacedKey, cacheEntry);
-    } catch {
-      // indexeddb may not be available (Firefox throws an error in Private mode)
-    }
+      // eslint-disable-next-line no-empty
+    } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
   }
 
   /** @inheritdoc */
@@ -69,12 +93,12 @@ export class LocalCache implements LocalCacheInterface {
     let result;
     try {
       result = await idbGet(namespacedKey);
-    } catch {
-      // indexeddb may not be available (Firefox throws an error in Private mode)
-    }
-
+      // eslint-disable-next-line no-empty
+    } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
     if (!result) return;
-    if (result.expires && result.expires < new Date()) {
+
+    const now = new Date();
+    if (result.expires && result.expires < now) {
       await this.delete(key);
       return;
     }
@@ -87,12 +111,44 @@ export class LocalCache implements LocalCacheInterface {
     const namespacedKey = this.getNamespacedKey(key);
     try {
       await idbDel(namespacedKey);
-    } catch {
-      // indexeddb may not be available (Firefox throws an error in Private mode)
+      // istanbul ignore next
+      // eslint-disable-next-line no-empty
+    } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
+  }
+
+  /** @inheritdoc */
+  async cleanExpired(): Promise<void> {
+    const keys = await this.getAllKeys();
+    // calling `get` on each key will delete it if expired
+    await Promise.all(keys.map(async key => this.get(key)));
+  }
+
+  /**
+   * Return all keys owned by this namespace
+   */
+  private async getAllKeys(): Promise<string[]> {
+    const keys = await idbKeys();
+    const stringKeys: string[] = [];
+    for (const key of keys) {
+      // we limit the keys to type `string` for simplicity, but under the hood,
+      // idbKeys can be several types so this just makes sure we're only using strings
+      // (which should be all of them)
+      if (typeof key === 'string') stringKeys.push(key);
     }
+    const namespacedKeys = stringKeys.filter(key =>
+      key.startsWith(this.namespace)
+    );
+    const keysWithoutNamespace = namespacedKeys.map(key =>
+      this.removeNamespace(key)
+    );
+    return keysWithoutNamespace;
   }
 
   private getNamespacedKey(key: string): string {
     return `${this.namespace}-${key}`;
+  }
+
+  private removeNamespace(key: string): string {
+    return key.replace(`${this.namespace}-`, '');
   }
 }
