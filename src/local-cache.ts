@@ -127,7 +127,14 @@ export class LocalCache implements LocalCacheInterface {
    * Return all keys owned by this namespace
    */
   private async getAllKeys(): Promise<string[]> {
-    const keys = await idbKeys();
+    // eslint-disable-next-line no-undef
+    let keys: IDBValidKey[] = [];
+    try {
+      keys = await idbKeys();
+      // istanbul ignore next
+      // eslint-disable-next-line no-empty
+    } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
+
     const stringKeys: string[] = [];
     for (const key of keys) {
       // we limit the keys to type `string` for simplicity, but under the hood,
