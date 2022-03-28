@@ -21,7 +21,7 @@
     "test:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --watch\""
   },
   "dependencies": {
-    "idb-keyval": "^5.0.4"
+    "idb-keyval": "^6.1.0"
   },
   "devDependencies": {
     "@open-wc/eslint-config": "^4.2.0",
