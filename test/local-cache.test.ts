@@ -1,5 +1,5 @@
 import { expect } from '@open-wc/testing';
-import { get as idbGet } from 'idb-keyval';
+import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import { addSeconds } from '../src/add-seconds';
 import { LocalCache } from '../src/local-cache';
 import { promisedSleep } from './promisedSleep';
@@ -138,6 +138,26 @@ describe('LocalCache', () => {
     const result = await idbGet('LocalCache-foo');
     expect(result.value).to.equal('bar');
     await localCache.delete('foo');
+  });
+
+  it('discards entries with bad expiration dates', async () => {
+    const localCache = new LocalCache();
+    await idbSet('LocalCache-foo', {
+      value: 'bar',
+      expires: 'not a date',
+    });
+
+    const rawResult = await idbGet('LocalCache-foo');
+    expect(rawResult).to.deep.equal({
+      value: 'bar',
+      expires: 'not a date',
+    });
+
+    const result = await localCache.get('foo');
+    expect(result).to.be.undefined;
+
+    const postRequestResult = await idbGet('LocalCache-foo');
+    expect(postRequestResult).to.be.undefined;
   });
 
   describe('Cleaning', () => {

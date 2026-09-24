@@ -1,11 +1,5 @@
-import {
-  html,
-  css,
-  LitElement,
-  customElement,
-  internalProperty,
-  query,
-} from 'lit-element';
+import { html, css, LitElement } from 'lit';
+import { query, state, customElement } from 'lit/decorators.js';
 import { LocalCache } from '../src/local-cache';
 
 @customElement('app-root')
@@ -14,7 +8,7 @@ export class AppRoot extends LitElement {
 
   private cacheKeyName = 'cache-demo';
 
-  @internalProperty()
+  @state()
   private cacheValue?: string;
 
   @query('#cacheValue') cacheValueInput!: HTMLInputElement;

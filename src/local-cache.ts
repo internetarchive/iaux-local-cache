@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   del as idbDel,
   get as idbGet,
@@ -83,7 +84,6 @@ export class LocalCache implements LocalCacheInterface {
     const namespacedKey = this.getNamespacedKey(options.key);
     try {
       await idbSet(namespacedKey, cacheEntry);
-      // eslint-disable-next-line no-empty
     } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
   }
 
@@ -93,16 +93,17 @@ export class LocalCache implements LocalCacheInterface {
     let result;
     try {
       result = await idbGet(namespacedKey);
-      // eslint-disable-next-line no-empty
     } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
     if (!result) return;
 
     const now = new Date();
-    if (result.expires && result.expires < now) {
-      await this.delete(key);
-      return;
+    if (result.expires) {
+      if (!(result.expires instanceof Date) || result.expires < now) {
+        await this.delete(key);
+        return;
+      }
     }
-    // eslint-disable-next-line consistent-return
+
     return result.value;
   }
 
@@ -112,7 +113,6 @@ export class LocalCache implements LocalCacheInterface {
     try {
       await idbDel(namespacedKey);
       // istanbul ignore next
-      // eslint-disable-next-line no-empty
     } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
   }
 
@@ -127,12 +127,10 @@ export class LocalCache implements LocalCacheInterface {
    * Return all keys owned by this namespace
    */
   private async getAllKeys(): Promise<string[]> {
-    // eslint-disable-next-line no-undef
     let keys: IDBValidKey[] = [];
     try {
       keys = await idbKeys();
       // istanbul ignore next
-      // eslint-disable-next-line no-empty
     } catch {} // indexeddb may not be available (Firefox throws an error in Private mode)
 
     const stringKeys: string[] = [];
@@ -143,10 +141,10 @@ export class LocalCache implements LocalCacheInterface {
       if (typeof key === 'string') stringKeys.push(key);
     }
     const namespacedKeys = stringKeys.filter(key =>
-      key.startsWith(this.namespace)
+      key.startsWith(this.namespace),
     );
     const keysWithoutNamespace = namespacedKeys.map(key =>
-      this.removeNamespace(key)
+      this.removeNamespace(key),
     );
     return keysWithoutNamespace;
   }
