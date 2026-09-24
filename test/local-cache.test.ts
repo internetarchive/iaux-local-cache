@@ -1,8 +1,21 @@
 import { expect } from '@open-wc/testing';
-import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
+import {
+  createStore,
+  get as rawGet,
+  set as rawSet,
+  del as rawDel,
+} from 'idb-keyval';
 import { addSeconds } from '../src/add-seconds';
-import { LocalCache } from '../src/local-cache';
+import {
+  LocalCache,
+  LOCAL_CACHE_DB_NAME,
+  LOCAL_CACHE_STORE_NAME,
+} from '../src/local-cache';
 import { promisedSleep } from './promisedSleep';
+
+const cacheStore = createStore(LOCAL_CACHE_DB_NAME, LOCAL_CACHE_STORE_NAME);
+const idbGet = (key: string) => rawGet(key, cacheStore);
+const idbSet = (key: string, value: unknown) => rawSet(key, value, cacheStore);
 
 describe('LocalCache', () => {
   it('can set a cache entry with default ttl', async () => {
@@ -141,7 +154,10 @@ describe('LocalCache', () => {
   });
 
   it('discards entries with bad expiration dates', async () => {
-    const localCache = new LocalCache();
+    const localCache = new LocalCache({
+      disableCleaning: true,
+      immediateClean: false,
+    });
     await idbSet('LocalCache-foo', {
       value: 'bar',
       expires: 'not a date',
@@ -158,6 +174,16 @@ describe('LocalCache', () => {
 
     const postRequestResult = await idbGet('LocalCache-foo');
     expect(postRequestResult).to.be.undefined;
+  });
+
+  it('never expires an entry with an infinite ttl', async () => {
+    const localCache = new LocalCache({ namespace: 'forever' });
+    await localCache.set({ key: 'foo', value: 'bar', ttl: Infinity });
+
+    const result = await idbGet('forever-foo');
+    expect(result.expires).to.equal(undefined);
+    expect(await localCache.get('foo')).to.equal('bar');
+    await localCache.delete('foo');
   });
 
   describe('Cleaning', () => {
@@ -243,6 +269,113 @@ describe('LocalCache', () => {
 
       const result = await localCache.get('foo');
       expect(result).to.equal(undefined);
+      localCache.dispose();
+    });
+
+    it('stops cleaning after dispose', async () => {
+      const localCache = new LocalCache({
+        namespace: 'disposeme',
+        defaultTTL: 0.05,
+        immediateClean: false,
+        cleaningInterval: 0.1,
+      });
+      localCache.dispose();
+      await localCache.set({ key: 'foo', value: 'bar' });
+      await promisedSleep(150); // past the expiry and the clean interval
+
+      const result = await idbGet('disposeme-foo');
+      expect(result.value).to.equal('bar');
+      await localCache.delete('foo');
+    });
+
+    it('does not clean a namespace that only shares a prefix', async () => {
+      const loan = new LocalCache({ namespace: 'loan', disableCleaning: true });
+      await idbSet('loanRenew-foo', {
+        value: 'bar',
+        expires: new Date(Date.now() - 1000),
+      });
+      await loan.cleanExpired();
+
+      const result = await idbGet('loanRenew-foo');
+      expect(result.value).to.equal('bar');
+      await rawDel('loanRenew-foo', cacheStore);
+    });
+
+    it('keeps a value set while an expired get is deleting it', async () => {
+      const localCache = new LocalCache({
+        namespace: 'race',
+        disableCleaning: true,
+      });
+      await localCache.set({ key: 'foo', value: 'old', ttl: 0.05 });
+      await promisedSleep(100); // wait until it expires
+
+      const [staleRead] = await Promise.all([
+        localCache.get('foo'),
+        localCache.set({ key: 'foo', value: 'new' }),
+      ]);
+      expect(staleRead).to.equal(undefined);
+      expect(await localCache.get('foo')).to.equal('new');
+      await localCache.delete('foo');
+    });
+
+    it('removes its own expired entries from the legacy idb-keyval store', async () => {
+      await rawSet('sweepme-foo', {
+        value: 'old',
+        expires: new Date(Date.now() - 1000),
+      });
+      await rawSet('sweepme-live', {
+        value: 'live',
+        expires: new Date(Date.now() + 60_000),
+      });
+      await rawSet('sweepmeNot-foo', { value: 'other' });
+
+      const localCache = new LocalCache({
+        namespace: 'sweepme',
+        disableCleaning: true,
+        immediateClean: false,
+      });
+      await localCache.cleanExpired();
+
+      expect(await rawGet('sweepme-foo')).to.equal(undefined);
+      expect((await rawGet('sweepme-live')).value).to.equal('live');
+      expect((await rawGet('sweepmeNot-foo')).value).to.equal('other');
+      await rawDel('sweepme-live');
+      await rawDel('sweepmeNot-foo');
+    });
+
+    it('does nothing without IndexedDB', async () => {
+      const globals = window as unknown as Record<string, unknown>;
+      const saved = {
+        indexedDB: globals.indexedDB,
+        IDBKeyRange: globals.IDBKeyRange,
+      };
+      Object.defineProperty(window, 'indexedDB', {
+        value: undefined,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'IDBKeyRange', {
+        value: undefined,
+        configurable: true,
+      });
+      try {
+        const localCache = new LocalCache({
+          namespace: 'noidb',
+          disableCleaning: true,
+          immediateClean: false,
+        });
+        await localCache.cleanExpired();
+        await localCache.set({ key: 'foo', value: 'bar' });
+        expect(await localCache.get('foo')).to.equal(undefined);
+      } finally {
+        Object.defineProperty(window, 'indexedDB', {
+          value: saved.indexedDB,
+          configurable: true,
+        });
+        Object.defineProperty(window, 'IDBKeyRange', {
+          value: saved.IDBKeyRange,
+          configurable: true,
+        });
+      }
     });
   });
 });

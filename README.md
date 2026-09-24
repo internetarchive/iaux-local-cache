@@ -42,6 +42,30 @@ const localCache = new LocalCache({
 });
 ```
 
+### Entries that never expire
+```js
+await localCache.set({ key: 'foo', value: 'bar', ttl: Infinity });
+```
+
+### Cleaning
+Expired entries are removed when you `get` them, and every namespace is cleaned once on creation and then every 60 seconds.
+
+```js
+const localCache = new LocalCache({
+  cleaningInterval: 5 * 60, // clean every 5 minutes
+  immediateClean: false,    // skip the clean on creation
+  disableCleaning: true,    // or turn periodic cleaning off entirely
+});
+
+// stop periodic cleaning, e.g. when the owning component disconnects
+localCache.dispose();
+```
+
+### Storage
+Entries live in their own IndexedDB database (`LocalCache`, store `entries`), with keys prefixed by namespace. On its first clean, each cache also removes its namespace's expired entries from idb-keyval's default `keyval-store` database, where versions before 1.0 kept them. Unexpired ones stay put so a pre-1.0 cache on the same site keeps working.
+
+If IndexedDB isn't available (e.g. Firefox private browsing), every call quietly does nothing and `get` returns `undefined`.
+
 ## Local Demo with `web-dev-server`
 ```bash
 yarn start
@@ -66,29 +90,7 @@ To scan the project for linting errors, run
 yarn run lint
 ```
 
-You can lint with ESLint and Prettier individually as well
-```bash
-yarn run lint:eslint
-```
-```bash
-yarn run lint:prettier
-```
-
 To automatically fix many linting errors, run
 ```bash
 yarn run format
 ```
-
-You can format using ESLint and Prettier individually as well
-```bash
-yarn run format:eslint
-```
-```bash
-yarn run format:prettier
-```
-
-## Tooling configs
-
-For most of the tools, the configuration is in the `package.json` to reduce the amount of files in your project.
-
-If you customize the configuration a lot, you can consider moving them to individual files.
