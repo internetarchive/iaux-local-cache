@@ -1,12 +1,18 @@
 {
   "name": "@internetarchive/local-cache",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "A local browser cache with cache expiration. Built on IndexedDB.",
   "author": "Internet Archive",
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist",
+    "!dist/demo",
+    "!dist/test"
+  ],
   "publishConfig": {
     "access": "public"
   },
