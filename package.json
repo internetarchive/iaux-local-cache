@@ -24,6 +24,8 @@
     "idb-keyval": "^6.2.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.19.0",
     "@open-wc/eslint-config": "^12.0.3",
     "@open-wc/testing": "^4.0.0",
     "@types/mocha": "^10.0.10",
@@ -34,6 +36,7 @@
     "concurrently": "^9.1.2",
     "eslint": "^9.19.0",
     "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-html": "^7.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.4.2",
     "lit": "^3.2.1",
