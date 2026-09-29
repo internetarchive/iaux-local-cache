@@ -1,12 +1,18 @@
 {
   "name": "@internetarchive/local-cache",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "A local browser cache with cache expiration. Built on IndexedDB.",
   "author": "Internet Archive",
   "license": "AGPL-3.0-only",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "README.md",
+    "dist",
+    "!dist/demo",
+    "!dist/test"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -14,58 +20,37 @@
     "start": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wds\"",
     "build": "tsc",
     "prepare": "tsc",
-    "lint": "eslint --ext .ts,.html . --ignore-path .gitignore && prettier \"**/*.ts\" --check --ignore-path .gitignore",
-    "format": "eslint --ext .ts,.html . --fix --ignore-path .gitignore && prettier \"**/*.ts\" --write --ignore-path .gitignore",
+    "lint": "eslint . && prettier \"**/*.ts\" --check",
+    "format": "eslint . --fix && prettier \"**/*.ts\" --write",
     "circular": "madge --circular --extensions ts .",
     "test": "tsc && yarn run lint && yarn run circular && wtr --coverage",
     "test:watch": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"wtr --watch\""
   },
   "dependencies": {
-    "idb-keyval": "^6.1.0"
+    "idb-keyval": "^6.2.1"
   },
   "devDependencies": {
-    "@open-wc/eslint-config": "^4.2.0",
-    "@open-wc/testing": "^2.0.0",
-    "@typescript-eslint/eslint-plugin": "^4.16.1",
-    "@typescript-eslint/parser": "^4.16.1",
-    "@web/dev-server": "^0.1.1",
-    "@web/test-runner": "^0.13.27",
-    "concurrently": "^5.3.0",
-    "eslint": "^7.21.0",
-    "eslint-config-prettier": "^6.11.0",
-    "husky": "^1.0.0",
-    "lint-staged": "^10.0.0",
-    "lit-element": "^2.2.1",
-    "lit-html": "^1.1.2",
-    "madge": "^4.0.1",
-    "prettier": "^2.0.4",
-    "sinon": "^9.2.4",
-    "tslib": "^2.0.3",
-    "typescript": "^4.2.3"
-  },
-  "eslintConfig": {
-    "parser": "@typescript-eslint/parser",
-    "extends": [
-      "@open-wc/eslint-config",
-      "eslint-config-prettier"
-    ],
-    "plugins": [
-      "@typescript-eslint"
-    ],
-    "rules": {
-      "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": [
-        "error"
-      ],
-      "import/no-unresolved": "off",
-      "import/extensions": [
-        "warn",
-        {
-          "js": "never",
-          "ts": "never"
-        }
-      ]
-    }
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.19.0",
+    "@open-wc/eslint-config": "^12.0.3",
+    "@open-wc/testing": "^4.0.0",
+    "@types/mocha": "^10.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "@web/dev-server": "^0.4.6",
+    "@web/test-runner": "^0.19.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.19.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-html": "^7.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.2",
+    "lit": "^3.2.1",
+    "madge": "^8.0.0",
+    "prettier": "^3.4.2",
+    "sinon": "^19.0.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3"
   },
   "prettier": {
     "singleQuote": true,
